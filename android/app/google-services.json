@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "839017200171",
+    "project_id": "stepbystep-71192",
+    "storage_bucket": "stepbystep-71192.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839017200171:android:5d2483ee5a4b0e037c486e",
+        "android_client_info": {
+          "package_name": "com.example.step_by_step_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "839017200171-4cdm3fg6vpsel4qs86rktfh4vv8o68eh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3UQ7saCNqBA7gI_idob2N9w6OmGvtwt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "839017200171-4cdm3fg6vpsel4qs86rktfh4vv8o68eh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
