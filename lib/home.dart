@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:location/location.dart';
@@ -18,10 +19,10 @@ class _HomePageState extends State<HomePage> {
   LocationData? _currentLocation;
   final Location _location = Location();
   bool _isTracking = false;
-  List<LatLng> _trackedLocations = [];
-  StreamSubscription<LocationData>? _locationSubscription;
+  final List<LatLng> _trackedLocations = [];
   Timer? _trackingTimer;
   bool _initialLocationSet = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -99,8 +100,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> _saveTrackedLocationsToDB() async {
     if (_trackedLocations.isEmpty) return;
 
-    final data = {
-      'timestamp': DateTime.now(),
+    final user = _auth.currentUser;
+    if (user == null) {
+      debugPrint('User not logged in. Cannot save to Firestore.');
+      return;
+    }
+
+    final newPath = {
+      'timestamp': FieldValue.serverTimestamp(),
       'path':
           _trackedLocations
               .map(
@@ -109,8 +116,41 @@ class _HomePageState extends State<HomePage> {
               .toList(),
     };
 
-    await FirebaseFirestore.instance.collection('tracked_paths').add(data);
-    debugPrint('Tracked locations saved to Firestore');
+    final userDocRef = FirebaseFirestore.instance
+        .collection('user')
+        .doc(user.uid);
+
+    try {
+      final userDoc = await userDocRef.get();
+      List<dynamic> trackedPaths = [];
+
+      if (userDoc.exists && userDoc.data()?['trackedPaths'] is List) {
+        trackedPaths = List.from(userDoc['trackedPaths']);
+      }
+
+      // 새 path를 추가하고, 최신 순으로 정렬 후 상위 10개만 유지
+      trackedPaths.insert(0, newPath);
+      if (trackedPaths.length > 10) {
+        trackedPaths = trackedPaths.sublist(0, 10);
+      }
+
+      await userDocRef.update({
+        'trackedPaths': trackedPaths,
+        'lastTrackedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 동시에 tracked_paths에도 기록 (옵션)
+      await FirebaseFirestore.instance.collection('tracked_paths').add({
+        'userId': user.uid,
+        'userName': user.displayName ?? 'Anonymous',
+        'timestamp': FieldValue.serverTimestamp(),
+        'path': newPath['path'],
+      });
+
+      debugPrint('Tracked locations saved to Firestore: ${user.uid}');
+    } catch (e) {
+      debugPrint('Error saving tracked locations: $e');
+    }
   }
 
   void _toggleTracking() {
@@ -133,6 +173,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final loginState = context.watch<AppState>();
+    final user = _auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -230,7 +271,7 @@ class _HomePageState extends State<HomePage> {
 
           Positioned(
             bottom: 30,
-            right: 20,
+            left: MediaQuery.of(context).size.width / 2 - 28,
             child: FloatingActionButton(
               onPressed: _toggleTracking,
               backgroundColor: _isTracking ? Colors.red : Colors.deepPurple,

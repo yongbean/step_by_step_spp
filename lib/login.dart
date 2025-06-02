@@ -40,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
         GoogleProvider(clientId: DefaultFirebaseOptions.currentPlatform.iosClientId!),
       ],
       footerBuilder: (context, _) => Padding(
-        padding: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.only(top: 8),
         child: ElevatedButton(
           onPressed: () => _signInAnonymously(context),
           child: const Text('Sign in as Guest'),

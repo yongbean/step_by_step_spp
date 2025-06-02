@@ -12,7 +12,7 @@ class ActivityDetailPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            context.go('/userStatus/activity');
+            context.pop();
           },
         ),
       ),

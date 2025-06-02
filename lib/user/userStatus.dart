@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -159,32 +161,39 @@ class _UserStatusPageStatus extends State<UserStatusPage> {
                   ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: ListView(
-                      children: [
-                        // get them from recent 3 activities list
-                        _buildActivityItem(
-                          context,
-                          'November 26',
-                          '10,12 km',
-                          '701 kcal',
-                          '11,2 km/hr',
-                        ),
-                        _buildActivityItem(
-                          context,
-                          'November 21',
-                          '9,89 km',
-                          '669 kcal',
-                          '10,8 km/hr',
-                        ),
-                        _buildActivityItem(
-                          context,
-                          'November 16',
-                          '9,12 km',
-                          '608 kcal',
-                          '10 km/hr',
-                        ),
-                      ],
-                    ),
+                    child:
+                        (data['trackedPaths'] == null ||
+                                data['trackedPaths'].isEmpty)
+                            ? const Center(child: Text('No recent activity'))
+                            : ListView.builder(
+                              itemCount: (data['trackedPaths'] as List).length,
+                              itemBuilder: (context, index) {
+                                final activity = data['trackedPaths'][index];
+                                final date =
+                                    (activity['timestamp'] as Timestamp?)
+                                        ?.toDate();
+                                final path = activity['path'] as List<dynamic>;
+
+                                final distanceKm = _calculateDistance(
+                                  path,
+                                ).toStringAsFixed(2);
+                                final kcal = _estimateKcal(distanceKm);
+                                final avgSpeed = _estimateSpeed(
+                                  distanceKm,
+                                ); // or dummy
+
+                                return _buildActivityItem(
+                                  context,
+                                  date != null
+                                      ? _formatDate(date)
+                                      : 'Unknown date',
+                                  '$distanceKm km',
+                                  '$kcal kcal',
+                                  '$avgSpeed km/h',
+                                  index, // pass index as ID for navigation
+                                );
+                              },
+                            ),
                   ),
                 ],
               ),
@@ -196,12 +205,54 @@ class _UserStatusPageStatus extends State<UserStatusPage> {
     );
   }
 
+  String _formatDate(DateTime date) {
+  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+}
+
+double _calculateDistance(List<dynamic> path) {
+  if (path.length < 2) return 0.0;
+
+  double total = 0.0;
+  for (int i = 1; i < path.length; i++) {
+    final p1 = path[i - 1];
+    final p2 = path[i];
+    total += _haversine(p1['lat'], p1['lng'], p2['lat'], p2['lng']);
+  }
+  return total;
+}
+
+double _haversine(double lat1, double lon1, double lat2, double lon2) {
+  const R = 6371; // Earth radius in km
+  final dLat = _deg2rad(lat2 - lat1);
+  final dLon = _deg2rad(lon2 - lon1);
+  final a = 
+    (sin(dLat / 2) * sin(dLat / 2)) +
+    cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) *
+    sin(dLon / 2) * sin(dLon / 2);
+  final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  return R * c;
+}
+
+double _deg2rad(double deg) => deg * (pi / 180);
+
+String _estimateKcal(String kmStr) {
+  final km = double.tryParse(kmStr) ?? 0.0;
+  return (km * 50).toStringAsFixed(0); // 예: 1km당 50kcal
+}
+
+String _estimateSpeed(String kmStr) {
+  final km = double.tryParse(kmStr) ?? 0.0;
+  return (km / 1.0).toStringAsFixed(1); // 예: 1시간 달렸다고 가정
+}
+
+
   Widget _buildActivityItem(
     BuildContext context,
     String date,
     String distance,
     String kcal,
     String speed,
+    int id,
   ) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -212,9 +263,7 @@ class _UserStatusPageStatus extends State<UserStatusPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             image: const DecorationImage(
-              image: AssetImage(
-                'assets/map_placeholder.png',
-              ), // replace with real image
+              image: AssetImage('assets/map_placeholder.png'), // 실제 썸네일로 변경 가능
               fit: BoxFit.cover,
             ),
           ),
@@ -230,7 +279,7 @@ class _UserStatusPageStatus extends State<UserStatusPage> {
           ],
         ),
         onTap: () {
-          context.go('/userStatus/activity/:id');
+          context.go('/userStatus/activity/$id');
         },
       ),
     );

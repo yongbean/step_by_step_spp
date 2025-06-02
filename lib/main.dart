@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:step_by_step_app/routes.dart';
 import 'package:step_by_step_app/user/activity.dart';
 import 'package:step_by_step_app/user/activityDetail.dart';
 import 'package:step_by_step_app/app_state.dart';
@@ -32,6 +33,7 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/start', builder: (context, state) => const StartPage()),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/', builder: (context, state) => const HomePage()),
+    GoRoute(path: '/routes', builder: (context, state) => const RoutePage()),
     GoRoute(path: '/userStatus', builder: (context, state) => const UserStatusPage()),
     GoRoute(path: '/userStatus/profile', builder: (context, state) => const ProfilePage()),
     GoRoute(path: '/userStatus/activity', builder: (context, state) => const ActivityPage()),
