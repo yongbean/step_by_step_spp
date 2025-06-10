@@ -30,23 +30,50 @@ Future<void> main() async {
 final GoRouter _router = GoRouter(
   initialLocation: '/start',
   routes: [
-    GoRoute(path: '/start', builder: (context, state) => const StartPage()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/', builder: (context, state) => const HomePage()),
-    GoRoute(path: '/routes', builder: (context, state) => const RoutePage()),
-    GoRoute(path: '/userStatus', builder: (context, state) => const UserStatusPage()),
-    GoRoute(path: '/userStatus/profile', builder: (context, state) => const ProfilePage()),
-    GoRoute(path: '/userStatus/activity', builder: (context, state) => const ActivityPage()),
     GoRoute(
-      path: '/userStatus/activity/:id',
-      builder: (context, state) {
-        final routeId = state.pathParameters['id']!;
-        return ActivityDetailPage(routeId: routeId);
-      },
+      path: '/start',
+      builder: (context, state) => const StartPage(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
+      path: '/routes',
+      builder: (context, state) => const RoutePage(),
     ),
 
+    /// ✅ 중첩 구조 시작
+    GoRoute(
+      path: '/userStatus',
+      builder: (context, state) => const UserStatusPage(),
+      routes: [
+        GoRoute(
+          path: 'profile',
+          builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
+          path: 'activity',
+          builder: (context, state) => const ActivityPage(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) {
+                final routeId = state.pathParameters['id']!;
+                return ActivityDetailPage(routeId: routeId);
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
   ],
 );
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

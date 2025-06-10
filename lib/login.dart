@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
           'name': 'Anonymous',
           'createdAt': FieldValue.serverTimestamp(),
         });
-        context.pushReplacement('/');
+        context.push('/');
       }
     } catch (e) {
       debugPrint('Anonymous sign-in error: $e');
@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
                 'createdAt': FieldValue.serverTimestamp(),
               });
             }
-            context.go('/');
+            context.push('/');
           }
         }),
       ],
