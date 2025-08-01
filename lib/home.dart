@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:step_by_step_app/app_state.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:step_by_step_app/style.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -40,7 +41,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _moveToCurrentLocation() {
-    final latLng = LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!);
+    final latLng = LatLng(
+      _currentLocation!.latitude!,
+      _currentLocation!.longitude!,
+    );
     _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 17));
   }
 
@@ -82,17 +86,25 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _stopTracking() {
+  void _stopTracking() async {
     _trackingTimer?.cancel();
     _trackingTimer = null;
+    final docId = await _saveTrackedLocationsToDB();
+    if (context.mounted && docId != null) {
+      context.push('/savePage/$docId');
+    }
   }
 
   Future<String?> _getAddressFromLatLng(LatLng position) async {
     try {
-      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
-        return "${place.locality ?? ''} ${place.subLocality ?? ''} ${place.street ?? ''}".trim();
+        return "${place.locality ?? ''} ${place.subLocality ?? ''} ${place.street ?? ''}"
+            .trim();
       }
     } catch (e) {
       debugPrint('Failed to get address: $e');
@@ -100,27 +112,33 @@ class _HomePageState extends State<HomePage> {
     return null;
   }
 
-  Future<void> _saveTrackedLocationsToDB() async {
-    if (_trackedLocations.isEmpty) return;
+  Future<String?> _saveTrackedLocationsToDB() async {
+    if (_trackedLocations.isEmpty) return null;
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) return null;
 
     try {
-      final duration = DateTime.now().difference(_trackingStartTime).inSeconds / 60.0;
+      final duration =
+          DateTime.now().difference(_trackingStartTime).inSeconds / 60.0;
       final startAddress = await _getAddressFromLatLng(_trackedLocations.first);
 
-      final newDocRef = await FirebaseFirestore.instance.collection('tracked_paths').add({
-        'userId': user.uid,
-        'userName': user.displayName ?? 'Anonymous',
-        'timestamp': FieldValue.serverTimestamp(),
-        'path': _trackedLocations
-            .map((p) => {'lat': p.latitude, 'lng': p.longitude})
-            .toList(),
-        'startAddress': startAddress ?? 'Unknown location',
-        'timeDuration': duration.toStringAsFixed(2),
-      });
+      final newDocRef = await FirebaseFirestore.instance
+          .collection('tracked_paths')
+          .add({
+            'userId': user.uid,
+            'userName': user.displayName ?? 'Anonymous',
+            'timestamp': FieldValue.serverTimestamp(),
+            'path':
+                _trackedLocations
+                    .map((p) => {'lat': p.latitude, 'lng': p.longitude})
+                    .toList(),
+            'startAddress': startAddress ?? 'Unknown location',
+            'timeDuration': duration.toStringAsFixed(2),
+          });
 
-      final userDocRef = FirebaseFirestore.instance.collection('user').doc(user.uid);
+      final userDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc(user.uid);
       final userDoc = await userDocRef.get();
       List<dynamic> pathIds = userDoc.data()?['trackedPathIds'] ?? [];
 
@@ -132,15 +150,17 @@ class _HomePageState extends State<HomePage> {
         'lastTrackedAt': FieldValue.serverTimestamp(),
         'startAddress': startAddress ?? 'Unknown location',
       });
+
+      return newDocRef.id;
     } catch (e) {
       debugPrint('Error saving tracked path: $e');
+      return null;
     }
   }
 
   void _toggleTracking() {
     if (_isTracking) {
       _stopTracking();
-      _saveTrackedLocationsToDB();
     } else {
       _startTracking();
     }
@@ -153,10 +173,11 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
       ),
       drawer: Drawer(
@@ -172,7 +193,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 context.pop();
                 context.go('/');
-              }
+              },
             ),
             ListTile(
               title: const Text('Routes'),
@@ -182,10 +203,6 @@ class _HomePageState extends State<HomePage> {
               title: const Text('User Status'),
               onTap: () => context.go('/userStatus'),
             ),
-            // ListTile(
-            //   title: const Text('Settings'),
-            //   onTap: () => context.go('/settings'),
-            // ),
             ListTile(
               title: const Text('Logout'),
               onTap: () {
@@ -196,34 +213,43 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: Stack(
-        children: [
-          if (_initialLocationSet)
-            GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!),
-                zoom: 17,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              polylines: _buildPolylines(),
-            )
-          else
-            const Center(child: CircularProgressIndicator()),
+      body: Container(
+        decoration: const BoxDecoration(gradient: appGradientBackground),
+        child: Stack(
+          children: [
+            if (_initialLocationSet)
+              GoogleMap(
+                onMapCreated: _onMapCreated,
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(
+                    _currentLocation!.latitude!,
+                    _currentLocation!.longitude!,
+                  ),
+                  zoom: 17,
+                ),
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                polylines: _buildPolylines(),
+              )
+            else
+              const Center(child: CircularProgressIndicator()),
 
-          Positioned(
-            bottom: 30,
-            left: MediaQuery.of(context).size.width / 2 - 28,
-            child: FloatingActionButton(
-              onPressed: _toggleTracking,
-              backgroundColor: _isTracking ? Colors.red : Colors.deepPurple,
-              shape: const CircleBorder(),
-              child: Icon(_isTracking ? Icons.pause : Icons.play_arrow, size: 32),
+            Positioned(
+              bottom: 30,
+              left: MediaQuery.of(context).size.width / 2 - 28,
+              child: FloatingActionButton(
+                onPressed: _toggleTracking,
+                backgroundColor: _isTracking ? Colors.red : Colors.deepPurple,
+                shape: const CircleBorder(),
+                child: Icon(
+                  _isTracking ? Icons.pause : Icons.play_arrow,
+                  size: 32,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-} 
+}

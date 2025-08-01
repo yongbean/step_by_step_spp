@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:step_by_step_app/style.dart';
 
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
@@ -18,16 +19,16 @@ class ActivityPage extends StatelessWidget {
           onPressed: () => context.go('/userStatus'),
         ),
       ),
-      body:
-          user == null
-              ? const Center(child: Text('Not logged in'))
-              : StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('tracked_paths')
-                        .where('userId', isEqualTo: user.uid)
-                        .orderBy('timestamp', descending: true)
-                        .snapshots(),
+      body: Container(
+        decoration: const BoxDecoration(gradient: appGradientBackground),
+        child: user == null
+            ? const Center(child: Text('Not logged in'))
+            : StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tracked_paths')
+                    .where('userId', isEqualTo: user.uid)
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -45,10 +46,8 @@ class ActivityPage extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
                       final docId = docs[index].id;
-                      final address =
-                          data['startAddress'] ?? 'Unknown location';
-                      final date =
-                          (data['timestamp'] as Timestamp?)
+                      final address = data['startAddress'] ?? 'Unknown location';
+                      final date = (data['timestamp'] as Timestamp?)
                               ?.toDate()
                               .toString()
                               .split(' ')[0] ??
@@ -72,6 +71,7 @@ class ActivityPage extends StatelessWidget {
                   );
                 },
               ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:step_by_step_app/style.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -16,8 +17,14 @@ class ProfilePage extends StatelessWidget {
           },
         ),
       ),
-      body: const Center(
-        child: Text('Profile Page'),
+      body: Container(
+        decoration: const BoxDecoration(gradient: appGradientBackground),
+        child: const Center(
+          child: Text(
+            'Profile Page',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
